@@ -18,11 +18,11 @@
             </section>
             <form method="POST">
                 <b>IP/CIDR</b><br>
-                <input id="text" type="text" name="ip" value="<?php echo @$_POST['ip'];?>">
+                <input id="text" type="text" name="ip" value="<?php if(isset($_POST["ip"]) ) {echo $_POST['ip'];} else {echo 0;} ?>">
                 <input class="btn first" style="cursor: pointer;" type="submit" value="Calcular">
             </form>            
                 <?php
-                    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && ! empty( $_POST['ip'] ) ) { //Verifica se o formulário enviado
+                    if ( ! empty( $_POST['ip'] ) ) { //Verifica se o formulário enviado
                         //previne erros do F5 resubmit
                         $ip = new IpCalculator($_POST['ip']);
                         
@@ -34,8 +34,6 @@
                             else {
                                 echo 'Endereço IPv4 inválido!';
                             }   
-                        $ip = IpCalculator::CatchIP();
-                        echo "<b>IP da máquina:  </b>". $ip . '<br>';
                     } 
                 ?>
         </center>

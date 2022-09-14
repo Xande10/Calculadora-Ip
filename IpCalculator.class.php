@@ -63,6 +63,11 @@
         return ( $this->endereco_completo ); 
     }
 
+    public function formaBin($enderecoIp) {
+        $ipBin = str_pad(decbin(ip2long($enderecoIp)), 32, '0', STR_PAD_LEFT);
+        return implode(".", str_split($ipBin, 8));
+    }
+
     /* Retorna o endereço IPv4 */
     public function endereco() { 
         return ( $this->endereco ); 
@@ -78,7 +83,6 @@
         if ( $this->cidr() == 0 ) {
             return '0.0.0.0';
         }
-
         return ( 
             long2ip(
                 ip2long("255.255.255.255") << ( 32 - $this->cidr ) 
@@ -86,18 +90,32 @@
         );
     }
 
+    public function mascaraBin() {
+        $bin = null;
+        for ($i = 1; $i <= 32; $i ++){
+            $bin .= $this->cidr() >= $i ? '1' : '0';
+        }
+        $mascara = long2ip(bindec($bin));
+        return $this->formaBin($mascara);
+    }
+
     /* Retorna a rede na qual o IP está */
     public function rede() {
         if ( $this->cidr() == 0 ) {
             return '0.0.0.0';
         }
-
         return (
             long2ip( 
                 ( ip2long( $this->endereco ) ) & ( ip2long( $this->mascara() ) )
             )
         );
     }
+
+    public function redeBin() {
+        $enderecoRede = long2ip((ip2long($this->endereco)) & ip2long($this->rede()));
+        return $this->formaBin($enderecoRede);
+    }
+    
 
     /* Retorna o IP de broadcast da rede */
     public function broadcast() {
@@ -108,6 +126,12 @@
         return (
             long2ip( ip2long($this->rede() ) | ( ~ ( ip2long( $this->mascara() ) ) ) )
         );
+    }
+
+    public function broadcastBin() {
+        $broad=long2ip(~ip2long($this->rede()));
+        $endBroad = long2ip(ip2long($this->endereco) | ip2long($broad) );
+        return $this->formaBin($endBroad);
     }
     
     /* Retorna o número total de IPs (com a rede e o broadcast) */
@@ -140,6 +164,11 @@
             long2ip( ip2long( $this->rede() ) | 1 )
         );
     }
+
+    public function priBin() {
+        $priBin = long2ip(ip2long($this->rede()) + 1);
+        return $this->formaBin($priBin);
+    }
     
     /* Retorna os número de IPs que podem ser utilizados na rede */
     public function ultimo_ip() {
@@ -154,22 +183,12 @@
         );
     }
 
-    public static function CatchIP() {
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } else {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
-
-        if($ip = "::1") {
-            $ip = "Localhost"; 
-        }
-
-
-        return $ip;
+    public function ultBin() {
+        $ultUtil = long2ip(ip2long($this->broadcast()) - 1);
+        return $this->formaBin($ultUtil);
     }
+
+
 
     // Retorna os dados formatados
     public function __toString() {
@@ -177,13 +196,18 @@
                     <b>Endereço/Rede: </b>  ".$this->endereco_completo()."    <br>
                     <b>Endereço: </b>   ".$this->endereco()." <br>
                     <b>Prefixo CIDR: </b>   ".$this->cidr()." <br>
-                    <b>Máscara de sub-rede: </b>    ".$this->mascara()."    <br>
                     <b>IP da Rede: </b> ".$this->rede()."'/'".$this->cidr()."   <br>
-                    <b>Primeiro Host: </b>  ".$this->primeiro_ip()."  <br>
-                    <b>Último Host: </b>    ".$this->ultimo_ip()."    <br>
+                    <b>Endereço de rede binário: ".$this->redeBin()."    <br>
+                    <b>Máscara de sub-rede: </b>    ".$this->mascara()."    <br>
+                    <b>Máscara binária: ".$this->mascaraBin()."<br>
+                    <b>Primeiro utilizavel: </b>  ".$this->primeiro_ip()."  <br>
+                    <b>Primerio utilizável binário: ".$this->priBin()."    <br>
+                    <b>Último utilizavel: </b>    ".$this->ultimo_ip()."    <br>
+                    <b> Último utilizável binário: ".$this->ultBin()." <br>
                     <b>Total de IPs:  </b>  ".$this->total_ips()."   <br>
                     <b>Broadcast da Rede: </b>  ".$this->broadcast()."    <br>
-                    <b>Hosts: </b>  ".$this->ips_rede() . "<br>";
+                    <b>Endereço de broadcast binário: ".$this->broadcastBin()."    <br>
+                    <b>Total de Hosts: </b>  ".$this->ips_rede() . "<br>";
         return $str;
         
     }
